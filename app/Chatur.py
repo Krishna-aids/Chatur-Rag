@@ -10,7 +10,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # ── Page config ────────────────────────────────────────
 st.set_page_config(
-    page_title="AURA-RAG",
+    page_title="Chatur-RAG",
     page_icon="◈",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -103,7 +103,7 @@ _init()
 # SIDEBAR
 # ═══════════════════════════════════════════════════════
 with st.sidebar:
-    st.title("AURA-RAG")
+    st.title("Chatur-RAG")
 
     api_key = st.text_input(
         "GROQ API Key",
