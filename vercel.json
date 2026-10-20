@@ -1,11 +1,5 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/main.py"
-    }
-  ],
   "env": {
     "VERCEL_SUPPORT_LARGE_FUNCTIONS": "1",
     "HF_HOME": "/tmp/huggingface",
