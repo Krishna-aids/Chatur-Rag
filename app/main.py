@@ -23,9 +23,13 @@ import tempfile
 # Ensure project root is in path
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
-from core.pipeline import RAGPipeline
-from core.ingestion.pipeline import IngestionPipeline
-from utils.logger import setup_logging
+# Vercel entrypoint exports (FastAPI instance)
+try:
+    from main import app, handler, application
+except Exception:
+    app = None
+    handler = None
+    application = None
 
 
 # ---------------------------------------------------------------------------
@@ -111,6 +115,10 @@ def main():
         print("[ERROR] GROQ_API_KEY environment variable not set.")
         print("  export GROQ_API_KEY=your_key_here")
         sys.exit(1)
+
+    from core.pipeline import RAGPipeline
+    from core.ingestion.pipeline import IngestionPipeline
+    from utils.logger import setup_logging
 
     # --- Initialize query pipeline ---
     print("[1/5] Initialising query pipeline...")

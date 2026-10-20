@@ -18,9 +18,27 @@ from chromadb.config import Settings
 
 from utils.logger import get_logger
 
+import os
+import shutil
+import tempfile
+
 logger = get_logger(__name__)
 
-CHROMA_PATH = "data/processed/chroma_db"
+DEFAULT_CHROMA_PATH = "data/processed/chroma_db"
+
+
+def _resolve_chroma_path() -> str:
+    path = os.getenv("CHROMA_PATH", DEFAULT_CHROMA_PATH)
+    is_serverless = os.getenv("VERCEL") == "1" or os.environ.get("AWS_LAMBDA_FUNCTION_NAME") is not None
+    if is_serverless:
+        tmp_path = os.path.join(tempfile.gettempdir(), "chroma_db")
+        if not os.path.exists(tmp_path) and os.path.exists(path):
+            try:
+                shutil.copytree(path, tmp_path, dirs_exist_ok=True)
+            except Exception as e:
+                logger.warning("chroma_copy_to_tmp_failed", error=str(e))
+        return tmp_path
+    return path
 
 
 class ChromaStore:
@@ -34,10 +52,22 @@ class ChromaStore:
     """
 
     def __init__(self, collection_name: str = "aura_memory") -> None:
-        self._client = chromadb.PersistentClient(
-            path=CHROMA_PATH,
-            settings=Settings(anonymized_telemetry=False),
-        )
+        target_path = _resolve_chroma_path()
+        try:
+            self._client = chromadb.PersistentClient(
+                path=target_path,
+                settings=Settings(anonymized_telemetry=False),
+            )
+        except Exception as exc:
+            logger.warning(
+                "chroma_persistent_client_fallback_ephemeral",
+                path=target_path,
+                error=str(exc),
+            )
+            self._client = chromadb.Client(
+                settings=Settings(anonymized_telemetry=False)
+            )
+
         self._collection = self._client.get_or_create_collection(
             name=collection_name,
             metadata={"hnsw:space": "cosine"},

@@ -19,15 +19,40 @@ import json
 from contextlib import contextmanager
 from typing import Any, Generator
 
-import structlog
-from pythonjsonlogger import jsonlogger
+try:
+    import structlog
+    from pythonjsonlogger import jsonlogger
+    HAS_STRUCTLOG = True
+except ImportError:
+    HAS_STRUCTLOG = False
+
+
+class FallbackLogger:
+    def __init__(self, logger: logging.Logger):
+        self._logger = logger
+
+    def info(self, event: str, **kwargs: Any) -> None:
+        extra_str = " ".join(f"{k}={v}" for k, v in kwargs.items())
+        self._logger.info(f"{event} {extra_str}".strip())
+
+    def warning(self, event: str, **kwargs: Any) -> None:
+        extra_str = " ".join(f"{k}={v}" for k, v in kwargs.items())
+        self._logger.warning(f"{event} {extra_str}".strip())
+
+    def error(self, event: str, **kwargs: Any) -> None:
+        extra_str = " ".join(f"{k}={v}" for k, v in kwargs.items())
+        self._logger.error(f"{event} {extra_str}".strip())
+
+    def debug(self, event: str, **kwargs: Any) -> None:
+        extra_str = " ".join(f"{k}={v}" for k, v in kwargs.items())
+        self._logger.debug(f"{event} {extra_str}".strip())
 
 
 def setup_logging(log_level: str = "INFO", fmt: str = "json") -> None:
     """Call once at startup."""
     level = getattr(logging, log_level.upper(), logging.INFO)
 
-    if fmt == "json":
+    if HAS_STRUCTLOG and fmt == "json":
         handler = logging.StreamHandler()
         formatter = jsonlogger.JsonFormatter(
             "%(asctime)s %(name)s %(levelname)s %(message)s"
@@ -40,19 +65,22 @@ def setup_logging(log_level: str = "INFO", fmt: str = "json") -> None:
             format="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
         )
 
-    structlog.configure(
-        wrapper_class=structlog.make_filtering_bound_logger(level),
-        logger_factory=structlog.PrintLoggerFactory(),
-    )
+    if HAS_STRUCTLOG:
+        structlog.configure(
+            wrapper_class=structlog.make_filtering_bound_logger(level),
+            logger_factory=structlog.PrintLoggerFactory(),
+        )
 
 
-def get_logger(name: str) -> structlog.BoundLogger:
-    return structlog.get_logger(name)
+def get_logger(name: str) -> Any:
+    if HAS_STRUCTLOG:
+        return structlog.get_logger(name)
+    return FallbackLogger(logging.getLogger(name))
 
 
 @contextmanager
 def log_stage(
-    logger: structlog.BoundLogger,
+    logger: Any,
     stage: str,
     query_id: str = "",
     **extra: Any,

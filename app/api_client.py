@@ -77,24 +77,19 @@ def submit_feedback(
     """
     pipeline = _get_pipeline()
 
-    # Build a minimal PipelineResult so submit_feedback() has the right shape
-    from core.pipeline import PipelineResult
-    dummy_result = PipelineResult(
+    combined_feedback = f"[{feedback_type}] {feedback_text}".strip()
+    response = pipeline.submit_feedback(
         query_id=session_id,
         query=query,
         answer=answer,
-        confidence=0.0,
-        grounded=(feedback_type == "helpful"),
-        chunks_used=[],
+        feedback=combined_feedback,
+        rating=5 if feedback_type == "helpful" else 1,
     )
-
-    combined_feedback = f"[{feedback_type}] {feedback_text}".strip()
-    response = pipeline.submit_feedback(
-        result=dummy_result,
-        feedback_text=combined_feedback,
-        session_id=session_id,
-    )
-    return response
+    return {
+        "category": response.category,
+        "param_changes": response.param_changes or {},
+        "accepted": response.accepted,
+    }
 
 
 def run_ingestion(

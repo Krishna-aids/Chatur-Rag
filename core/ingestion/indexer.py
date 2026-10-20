@@ -45,8 +45,11 @@ class VectorIndexer:
         self.faiss_path = faiss_path
         self.chroma_path = chroma_path
 
-        os.makedirs(self.faiss_path, exist_ok=True)
-        os.makedirs(self.chroma_path, exist_ok=True)
+        try:
+            os.makedirs(self.faiss_path, exist_ok=True)
+            os.makedirs(self.chroma_path, exist_ok=True)
+        except OSError:
+            pass
 
     # ------------------------------------------------------------------
     # FAISS — document retrieval store

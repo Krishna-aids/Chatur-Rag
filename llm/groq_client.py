@@ -34,7 +34,20 @@ class GroqClient:
     """
 
     def __init__(self) -> None:
-        self._client = Groq(api_key=GROQ_API_KEY)
+        self._client_instance = None
+
+    @property
+    def _client(self) -> Groq:
+        if self._client_instance is None:
+            import os
+            key = os.getenv("GROQ_API_KEY", "").strip() or GROQ_API_KEY
+            if not key:
+                raise ValueError(
+                    "GROQ_API_KEY is not configured. Please set the GROQ_API_KEY "
+                    "environment variable in your Vercel Project Settings or .env file."
+                )
+            self._client_instance = Groq(api_key=key)
+        return self._client_instance
 
     # ------------------------------------------------------------------
     # Internal low-level call
